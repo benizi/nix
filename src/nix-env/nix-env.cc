@@ -853,7 +853,14 @@ static VersionDiff compareVersionAgainstSet(
 }
 
 
-static void queryJSON(Globals & globals, vector<DrvInfo> & elems)
+// TODO: What's Nix's code formatting policy?
+//
+// TODO: this implementation is super dumb that it's passing in all this info:
+// - old: queryJSON(globals, elems)
+// - new: queryJSON(globals, elems, bool, PathSet, PathSet, PathSet)
+//
+static void queryJSON(Globals & globals, vector<DrvInfo> & elems,
+        bool printStatus, PathSet & subs, PathSet & installed, PathSet & valid)
 {
     JSONObject topObj(cout, true);
     for (auto & i : elems) {
@@ -861,6 +868,13 @@ static void queryJSON(Globals & globals, vector<DrvInfo> & elems)
 
         pkgObj.attr("name", i.queryName());
         pkgObj.attr("system", i.querySystem());
+
+        if (printStatus) {
+            Path outPath = i.queryOutPath();
+            pkgObj.attr("installed", installed.find(outPath) != installed.end());
+            pkgObj.attr("valid", valid.find(outPath) != valid.end());
+            pkgObj.attr("substitutable", subs.find(outPath) != subs.end());
+        }
 
         JSONObject metaObj = pkgObj.object("meta");
         StringSet metaNames = i.queryMetaNames();
@@ -975,7 +989,9 @@ static void opQuery(Globals & globals, Strings opFlags, Strings opArgs)
 
     /* Print the desired columns, or XML output. */
     if (jsonOutput) {
-        queryJSON(globals, elems);
+        // TODO: formatting
+        queryJSON(globals, elems, printStatus, substitutablePaths, installed,
+                validPaths);
         return;
     }
 
