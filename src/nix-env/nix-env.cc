@@ -66,6 +66,30 @@ typedef void (* Operation) (Globals & globals,
     Strings opFlags, Strings opArgs);
 
 
+/*
+struct Element
+{
+    bool hasSubs;
+    bool isInstalled;
+    bool isValid;
+    string attrPath;
+    string name;
+    char versionDiff;
+    string maxComparedVersion;
+    string system;
+    string drvPath;
+    Strings outPaths;
+    string description;
+    string path;
+};
+
+
+static class Formatter {
+    public:
+        void setS();
+};
+*/
+
 static string needArg(Strings::iterator & i,
     Strings & args, const string & arg)
 {
@@ -859,6 +883,32 @@ static VersionDiff compareVersionAgainstSet(
 // - old: queryJSON(globals, elems)
 // - new: queryJSON(globals, elems, bool, PathSet, PathSet, PathSet)
 //
+// TODO: refactor existing version that does:
+//
+//     // Handle JSON output in an entirely separate function.
+//     if (json) { queryJSON(...); return; }
+//
+//     // For some reason, handle both tabular and XML output in the same loop:
+//     Table table;
+//     XMLWriter xml(...);
+//     for (i : elems) {
+//       if (xmlOutput) dosomething();
+//       if (!xmlOutput) dosomethingelse();
+//     }
+//     if (xmlOutput) finalizeXMLoutput();
+//
+//   into:
+//
+//     // Handle format-specific details in separate (probably static) classes:
+//     formatter = json ? JSONFormatter : xml ? XMLFormatter : ColumnFormatter;
+//
+//     formatter.printHeader();
+//     for (i : elems) {
+//       setupFormatterForElement(i); // probably inlined here
+//       formatter.printItem();
+//     }
+//     formatter.printFooter();
+//
 static void queryJSON(Globals & globals, vector<DrvInfo> & elems,
         bool printStatus, PathSet & subs, PathSet & installed, PathSet & valid)
 {
@@ -1127,6 +1177,7 @@ static void opQuery(Globals & globals, Strings opFlags, Strings opArgs)
                             XMLAttrs attrs2;
                             attrs2["name"] = j;
                             Value * v = i.queryMeta(j);
+// TODO: can this be simplified via printValueAsXML?
                             if (!v)
                                 printError("derivation '%s' has invalid meta attribute '%s'", i.queryName(), j);
                             else {
